@@ -1,0 +1,125 @@
+.prizes-page {
+  padding: 40px;
+}
+
+.prizes-header {
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.back-link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: #0f172a;
+}
+
+.empty-prizes {
+  text-align: center;
+  padding: 40px;
+  background-color: white;
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+/* We reuse the prize-card styles from spindraw */
+.prize-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.prize-tab-btn {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prize-tab-btn:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.prize-tab-btn.active {
+  background-color: #d79f25;
+  color: #0f172a;
+  border-color: #d79f25;
+}
+
+.prizes-page .prizes-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 32px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.prize-card {
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.prize-image-container {
+  position: relative;
+  height: 200px;
+  background-color: #f8fafc;
+}
+
+.prize-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.unit-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: #0f172a;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+}
+
+.prize-info {
+  padding: 16px;
+}
+
+.prize-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.prize-tier {
+  font-size: 0.85rem;
+  color: #d79f25;
+  font-weight: 500;
+}

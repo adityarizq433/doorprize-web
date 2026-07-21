@@ -1,0 +1,335 @@
+.doorprize-page {
+  padding: 40px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.max-w-lg {
+  max-width: 32rem;
+}
+
+.doorprize-header {
+  margin-bottom: 40px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-btn {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.prizes-grid-container {
+  overflow: hidden;
+  width: 100%;
+  padding-bottom: 10px;
+}
+
+.doorprize-page .prizes-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+  animation: slide-left 15s linear infinite;
+  margin-bottom: 40px;
+}
+
+@keyframes slide-left {
+  0% { transform: translateX(0); }
+  /* Menggeser tepat 1 set (10% karena ada 10 set duplikat) agar kembali ke awal dengan mulus */
+  100% { transform: translateX(-10%); }
+}
+
+.prize-card {
+  width: 250px;
+  flex-shrink: 0;
+  margin-right: 24px;
+  background-color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.prize-card.sold-out {
+  cursor: not-allowed;
+  border-color: #cbd5e1;
+}
+
+.prize-card.sold-out .prize-image {
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+.prize-card.sold-out .prize-info {
+  opacity: 0.6;
+}
+
+.sold-out-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(220, 38, 38, 0.9);
+  color: white;
+  padding: 10px 24px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  border-radius: 8px;
+  z-index: 3;
+  letter-spacing: 2px;
+  border: 2px solid white;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transform-origin: center;
+  animation: stamp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes stamp {
+  0% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.unit-badge.sold-out-badge {
+  background-color: #ef4444;
+}
+
+.prize-card.selected {
+  border-color: #d79f25;
+}
+
+.prize-image-container {
+  position: relative;
+  height: 180px;
+  background-color: #f8fafc;
+}
+
+.prize-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.unit-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background-color: #0f172a;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+}
+
+.selected-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #d79f25;
+  color: #0f172a;
+  padding: 4px 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-bottom-left-radius: 12px;
+  z-index: 2;
+}
+
+.prize-info {
+  padding: 16px;
+}
+
+.prize-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.prize-tier {
+  font-size: 0.85rem;
+  color: #d79f25;
+  font-weight: 500;
+}
+
+.control-panel {
+  background-color: white;
+  border-radius: 16px;
+  padding: 24px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.control-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.control-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.winner-select {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  color: #334155;
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
+  width: 200px;
+  margin-bottom: 8px;
+}
+
+.drawing-for {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.btn-mulai-spin {
+  background-color: #fbc638;
+  color: #0f172a;
+  border: none;
+  padding: 16px 40px;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(251, 198, 56, 0.3);
+}
+
+.btn-mulai-spin:hover {
+  background-color: #e5b32e;
+  transform: translateY(-2px);
+}
+
+.spin-icon {
+  stroke-width: 2.5px;
+}
+
+.mt-40 {
+  margin-top: 40px;
+}
+
+.flex-align {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.star-icon {
+  background-color: #d79f25;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.recent-draw-badge {
+  background-color: #e2e8f0;
+  color: #475569;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.winners-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.winner-card {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ticket-label {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.ticket-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
