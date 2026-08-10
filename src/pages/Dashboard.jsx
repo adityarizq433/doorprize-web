@@ -20,6 +20,7 @@ const Dashboard = () => {
     totalPemenang: 0
   });
   const [isFormOpen, setIsFormOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const [newPrize, setNewPrize] = useState({
     name: '',
@@ -31,6 +32,9 @@ const Dashboard = () => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+
     // 1. Listen Participants
     const participantsRef = collection(db, 'participants');
     const unsubParticipants = onSnapshot(participantsRef, (snapshot) => {
@@ -91,6 +95,7 @@ const Dashboard = () => {
       unsubParticipants();
       unsubPrizes();
       unsubSettings();
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -370,7 +375,7 @@ const Dashboard = () => {
             <BarChart layout="vertical" data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={true} stroke="#f1f5f9" />
               <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-              <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 500 }} width={250} interval={0} />
+              <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#1e293b', fontSize: isMobile ? 10 : 12, fontWeight: 500 }} width={isMobile ? 120 : 250} interval={0} />
               <Tooltip cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }} />
               <Bar dataKey="value" fill="#e2e8f0" radius={[0, 4, 4, 0]} activeBar={{ fill: '#fbc638' }} barSize={24} />
             </BarChart>

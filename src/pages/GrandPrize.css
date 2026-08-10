@@ -555,6 +555,10 @@
 }
 
 @media (max-width: 768px) {
+  .doorprize-header {
+    margin-top: 10px;
+  }
+
   .doorprize-title-split {
     font-size: 2.2rem;
   }

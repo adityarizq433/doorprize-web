@@ -780,6 +780,10 @@
     padding: 10px 15px 40px;
   }
 
+  .doorprize-header {
+    margin-top: 10px;
+  }
+
   .doorprize-title-split {
     font-size: 2.2rem;
   }
