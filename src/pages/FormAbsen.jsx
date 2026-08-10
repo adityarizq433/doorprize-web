@@ -236,8 +236,8 @@ const FormAbsen = () => {
     return (
       <div className="form-absen-container success-state">
         <div className="form-logos-header">
-          <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="form-logo-juanda" />
           <img src="/assets.png" alt="Injourney Logo" className="form-logo-injourney" />
+          <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="form-logo-juanda" />
         </div>
         <div className="form-content-wrapper">
           <img
@@ -275,8 +275,8 @@ const FormAbsen = () => {
   return (
     <div className="form-absen-container">
       <div className="form-logos-header">
-        <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="form-logo-juanda" />
         <img src="/assets.png" alt="Injourney Logo" className="form-logo-injourney" />
+        <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="form-logo-juanda" />
       </div>
       <div className="form-content-wrapper">
         <img

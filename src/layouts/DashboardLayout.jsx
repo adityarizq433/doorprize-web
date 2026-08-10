@@ -95,8 +95,8 @@ const DashboardLayout = () => {
       {/* Main Content */}
       <main className={`main-content ${isSpinBgPage ? 'spin-layout-bg' : ''} ${isAttendancePage ? 'login-layout-bg' : ''}`}>
         <div className="dashboard-logos-header">
-          <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="dashboard-logo-juanda" />
           <img src="/assets.png" alt="Injourney Logo" className="dashboard-logo-injourney" />
+          <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="dashboard-logo-juanda" />
         </div>
         <Outlet />
       </main>

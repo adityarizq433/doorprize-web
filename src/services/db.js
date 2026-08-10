@@ -191,3 +191,16 @@ export const deletePrize = async (prizeId) => {
     return false;
   }
 };
+
+// Update the quantity of a prize in the database
+export const updatePrizeQuantity = async (prizeId, newQuantity) => {
+  try {
+    const prizeRef = doc(db, 'prizes', prizeId);
+    await updateDoc(prizeRef, { units: newQuantity });
+    return true;
+  } catch (error) {
+    console.error("Gagal mengubah jumlah hadiah:", error);
+    Swal.fire({ icon: 'error', title: 'Gagal', text: "Gagal mengubah jumlah hadiah: " + error.message });
+    return false;
+  }
+};

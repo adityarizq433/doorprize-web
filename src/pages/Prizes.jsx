@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { ChevronLeft, Trash2 } from 'lucide-react';
+import { ChevronLeft, Trash2, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { deletePrize } from '../services/db';
+import { deletePrize, updatePrizeQuantity } from '../services/db';
 import Swal from 'sweetalert2';
 import './Prizes.css';
 
@@ -37,6 +37,32 @@ const Prizes = () => {
       const success = await deletePrize(prize.id);
       if (success) {
         Swal.fire('Terhapus!', 'Hadiah berhasil dihapus.', 'success');
+      }
+    }
+  };
+  const handleEditQuantity = async (prize) => {
+    const { value: newQuantity } = await Swal.fire({
+      title: 'Edit Jumlah Hadiah',
+      input: 'number',
+      inputLabel: `Masukkan jumlah baru untuk ${prize.name}`,
+      inputValue: prize.units,
+      showCancelButton: true,
+      confirmButtonText: 'Simpan',
+      cancelButtonText: 'Batal',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'Jumlah tidak boleh kosong!';
+        }
+        if (value < 0) {
+          return 'Jumlah tidak boleh negatif!';
+        }
+      }
+    });
+
+    if (newQuantity) {
+      const success = await updatePrizeQuantity(prize.id, parseInt(newQuantity));
+      if (success) {
+        Swal.fire('Tersimpan!', 'Jumlah hadiah berhasil diperbarui.', 'success');
       }
     }
   };
@@ -77,13 +103,22 @@ const Prizes = () => {
             <div key={prize.id} className="prize-card">
               <div className="prize-image-container">
                 <span className="unit-badge">{prize.units} Unit</span>
-                <button 
-                  className="delete-prize-btn" 
-                  onClick={() => handleDeletePrize(prize)}
-                  title="Hapus Hadiah"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="prize-action-btns">
+                  <button 
+                    className="edit-prize-btn" 
+                    onClick={() => handleEditQuantity(prize)}
+                    title="Edit Jumlah"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button 
+                    className="delete-prize-btn" 
+                    onClick={() => handleDeletePrize(prize)}
+                    title="Hapus Hadiah"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
                 <img src={prize.image} alt={prize.name} className="prize-image" />
               </div>
               <div className="prize-info">

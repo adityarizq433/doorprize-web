@@ -229,14 +229,14 @@
 }
 
 .form-logo-juanda {
-  height: 55px;
+  height: 90px;
   width: auto;
   object-fit: contain;
   max-width: 45%;
 }
 
 .form-logo-injourney {
-  height: 70px;
+  height: 110px;
   width: auto;
   object-fit: contain;
   max-width: 45%;
@@ -263,10 +263,10 @@
     margin: 0;
   }
   .form-logo-juanda {
-    height: 35px;
+    height: 55px;
   }
   .form-logo-injourney {
-    height: 45px;
+    height: 70px;
   }
   .hut81-logo {
     max-width: 220px;
