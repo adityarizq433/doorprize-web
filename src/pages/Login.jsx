@@ -26,17 +26,15 @@ const Login = () => {
 
   return (
     <div className="login-container">
+      <div className="logos-header">
+        <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="logo-juanda" />
+        <img src="/assets.png" alt="Injourney Logo" className="logo-injourney" />
+      </div>
       <div className="login-card">
         
-        <div className="icon-container">
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/7/79/Juanda_International_Airport_Logo.png" 
-            alt="Logo" 
-            style={{ maxWidth: '200px', height: 'auto' }} 
-          />
-        </div>
 
-        <h1 className="login-title">Doorprize 17 Agustus</h1>
+
+        <h1 className="login-title">Doorprize <span className="highlight-red">17 Agustus</span></h1>
         <p className="login-subtitle">Masuk untuk mengelola undian acara.</p>
         
         {error && <div className="error-message">{error}</div>}

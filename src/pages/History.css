@@ -300,3 +300,46 @@
 .btn-print-small:hover {
   background-color: #f59e0b;
 }
+
+/* Responsiveness for Mobile & Tablet */
+@media (max-width: 768px) {
+  .history-page {
+    padding: 20px;
+  }
+  .history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .search-box {
+    width: 100%;
+  }
+  .search-box input {
+    width: 100%;
+  }
+  .btn-filter, .btn-export {
+    width: 100%;
+    justify-content: center;
+  }
+  .table-container {
+    overflow-x: auto;
+  }
+  .draw-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .draw-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .btn-export-small, .btn-print-small {
+    flex: 1;
+    justify-content: center;
+  }
+}

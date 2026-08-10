@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { ref, get, set, child } from 'firebase/database';
+import { collection, doc, onSnapshot, getDocs, setDoc, runTransaction } from 'firebase/firestore';
 import { CheckCircle2, Ticket, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import Swal from 'sweetalert2';
 import './FormAbsen.css';
 
 const FormAbsen = () => {
@@ -17,7 +18,17 @@ const FormAbsen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const ticketRef = useRef(null);
 
+  const [isFormOpen, setIsFormOpen] = useState(true);
+
   useEffect(() => {
+    const settingsRef = doc(db, 'settings', 'general');
+    const unsub = onSnapshot(settingsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setIsFormOpen(data.isFormOpen !== undefined ? data.isFormOpen : true);
+      }
+    });
+
     const savedTicket = localStorage.getItem('doorprize_ticket');
     if (savedTicket) {
       const parsed = JSON.parse(savedTicket);
@@ -25,9 +36,13 @@ const FormAbsen = () => {
       setNomorUndian(parsed.nomor);
       setIsSubmitted(true);
     }
+
+    return () => unsub();
   }, []);
 
   const units = [
+    'General Manager',
+    'Deputy General Manager',
     'Airport Operation Center',
     'Branch Communication & CSR Department',
     'Legal & Compliance Department',
@@ -37,73 +52,135 @@ const FormAbsen = () => {
     'Airport Security Division',
     'Airport Technical Division',
     'Airport Commercial Division',
-    'General Manager',
-    'Deputy General Manager'
+    'Safety Management System & OHS Department',
+    'Airport Quality Control Department',
+    'Airport Operation Airside Department',
+    'Airport Operation Landside & Terminal Department',
+    'Airport Services Improvement Department',
+    'Airport Rescue & Fire Fighting Department',
+    'Airport Security Protection Department',
+    'Airport Security Screening Department',
+    'Airport Airside Facilities Department',
+    'Airport Landside Facilities Department',
+    'Airport Equipment Department',
+    'Airport Technology Department',
+    'Airport Environment Department',
+    'Aero Commercial Department',
+    'Non-Aero Commercial Terminal 1 Department',
+    'Non-Aero Commercial Terminal 2 Department'
   ];
+
 
   const statuses = ['Organik', 'Tenaga Ahli Daya', 'Magang'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.namaLengkap || !formData.nik || !formData.unit || !formData.statusPegawai) {
-      alert("Mohon lengkapi semua data!");
+      Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Mohon lengkapi semua data!' });
       return;
     }
-    
+
     setIsLoading(true);
 
     try {
-      // Get current highest number to generate new one
-      const dbRef = ref(db);
-      const snapshot = await get(child(dbRef, 'participants'));
+      let assignedNumber = '';
       
-      let nextNumber = 10001; // Default starting number
-      if (snapshot.exists()) {
-        const participants = snapshot.val();
-        
-        // Cek duplikasi NIK
-        const isDuplicate = Object.values(participants).some(p => p.nik === formData.nik);
-        if (isDuplicate) {
-          alert("Gagal: NIK ini sudah terdaftar! Harap gunakan NIK Anda sendiri.");
-          setIsLoading(false);
-          return;
-        }
+      const generateRandomTicket = () => {
+        // Menghasilkan angka acak antara 10000 dan 99999
+        return Math.floor(10000 + Math.random() * 90000).toString();
+      };
 
-        const existingNumbers = Object.values(participants)
-          .map(p => parseInt(p.nomor))
-          .filter(n => !isNaN(n));
-        
-        if (existingNumbers.length > 0) {
-          nextNumber = Math.max(...existingNumbers) + 1;
+      const maxRetries = 3;
+      let transactionSuccess = false;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          await runTransaction(db, async (transaction) => {
+            // 1. Cek duplikasi NIK terlebih dahulu
+            const nikRef = doc(db, 'registered_niks', formData.nik);
+            const nikDoc = await transaction.get(nikRef);
+            if (nikDoc.exists()) {
+              throw new Error('DUPLICATE_NIK');
+            }
+
+            // 2. Buat nomor tiket acak yang belum terpakai
+            let nextNumber = generateRandomTicket();
+            let userKey = `u${nextNumber}`;
+            let participantRef = doc(db, 'participants', userKey);
+            let participantDoc = await transaction.get(participantRef);
+            
+            let attempts = 0;
+            // Jika kebetulan nomor tiket sudah ada (sangat jarang), kita buat ulang
+            while (participantDoc.exists() && attempts < 5) {
+              nextNumber = generateRandomTicket();
+              userKey = `u${nextNumber}`;
+              participantRef = doc(db, 'participants', userKey);
+              participantDoc = await transaction.get(participantRef);
+              attempts++;
+            }
+            
+            if (attempts >= 5) {
+              throw new Error('SYSTEM_BUSY');
+            }
+
+            // 3. Set/Blokir data NIK agar tidak bisa mendaftar lagi
+            transaction.set(nikRef, {
+              namaLengkap: formData.namaLengkap,
+              timestamp: new Date().toISOString()
+            });
+
+            // 4. Simpan data peserta dengan nomor tiket yang baru dibuat
+            const newParticipant = {
+              nomor: nextNumber,
+              namaLengkap: formData.namaLengkap,
+              nik: formData.nik,
+              unit: formData.unit,
+              statusPegawai: formData.statusPegawai,
+              doorprize: '',
+              checkInTime: new Date().toISOString()
+            };
+
+            transaction.set(participantRef, newParticipant);
+            
+            // Simpan nomor untuk ditampilkan ke pengguna
+            assignedNumber = nextNumber;
+          });
+          
+          transactionSuccess = true;
+          break; // Keluar dari loop jika berhasil
+        } catch (err) {
+          if (err.message === 'DUPLICATE_NIK') {
+            throw err; // Lempar ke catch block luar jika duplikat
+          }
+          if (attempt === maxRetries) {
+            throw err; // Gagal total, lempar ke catch block luar
+          }
+          // Delay acak sebelum mencoba lagi
+          const delay = Math.floor(Math.random() * 2000) + 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
 
-      // Format the NIK just to ensure consistency
-      const userKey = `u${nextNumber}`;
-      
-      const newParticipant = {
-        nomor: nextNumber.toString(),
-        namaLengkap: formData.namaLengkap,
-        nik: formData.nik,
-        unit: formData.unit,
-        statusPegawai: formData.statusPegawai,
-        doorprize: '',
-        checkInTime: new Date().toISOString()
-      };
-
-      await set(ref(db, `participants/${userKey}`), newParticipant);
-      
+      // Proses berhasil, simpan ke localStorage
       localStorage.setItem('doorprize_ticket', JSON.stringify({
-        nomor: nextNumber.toString(),
+        nomor: assignedNumber,
         namaLengkap: formData.namaLengkap,
         nik: formData.nik
       }));
 
-      setNomorUndian(nextNumber.toString());
+      setNomorUndian(assignedNumber);
       setIsSubmitted(true);
     } catch (error) {
       console.error("Gagal mengirim absensi:", error);
-      alert("Terjadi kesalahan, silakan coba lagi.");
+      if (error.message === 'DUPLICATE_NIK') {
+        Swal.fire({ icon: 'error', title: 'Gagal', text: 'NIK ini sudah terdaftar! Harap gunakan NIK Anda sendiri.' });
+      } else {
+        Swal.fire({ 
+          icon: 'warning', 
+          title: 'Server Sedang Sibuk', 
+          text: 'Mohon maaf, saat ini sedang terjadi antrean. Silakan tunggu beberapa detik dan coba tekan tombol kirim lagi.' 
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -120,16 +197,26 @@ const FormAbsen = () => {
         link.click();
       } catch (err) {
         console.error("Gagal mendownload tiket:", err);
-        alert("Gagal mendownload tiket. Silakan screenshot manual.");
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal mendownload tiket. Silakan screenshot manual.' });
       }
     }
   };
 
   const [tapCount, setTapCount] = useState(0);
 
+  const handleReset = async () => {
+    const result = await Swal.fire({
+      title: 'Konfirmasi',
+      text: 'Yakin ingin mendaftarkan peserta lain? Tiket Anda saat ini akan dihapus dari HP ini.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, Daftar Lainnya',
+      cancelButtonText: 'Batal'
+    });
 
-  const handleReset = () => {
-    if (window.confirm("Yakin ingin mendaftarkan peserta lain? Tiket Anda saat ini akan dihapus dari HP ini.")) {
+    if (result.isConfirmed) {
       localStorage.removeItem('doorprize_ticket');
       setFormData({ namaLengkap: '', nik: '', unit: '', statusPegawai: '' });
       setNomorUndian('');
@@ -148,13 +235,23 @@ const FormAbsen = () => {
   if (isSubmitted) {
     return (
       <div className="form-absen-container success-state">
-        <div className="success-card">
-          <div className="success-icon-wrapper" onClick={handleSecretReset} style={{ cursor: 'pointer' }}>
+        <div className="form-logos-header">
+          <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="form-logo-juanda" />
+          <img src="/assets.png" alt="Injourney Logo" className="form-logo-injourney" />
+        </div>
+        <div className="form-content-wrapper">
+          <img
+            src="/HUTRI81_FA_Logo__Main Logo Merah Hitam Latar Putih.png"
+            alt="Logo HUT RI 81"
+            className="hut81-logo"
+          />
+          <div className="success-card">
+            <div className="success-icon-wrapper" onClick={handleSecretReset} style={{ cursor: 'pointer' }}>
             <CheckCircle2 size={60} color="#22c55e" />
           </div>
           <h2>Kehadiran Berhasil Dicatat!</h2>
           <p>Terima kasih <strong>{formData.namaLengkap}</strong>, Anda telah resmi terdaftar untuk mengikuti undian doorprize.</p>
-          
+
           <div className="ticket-box" ref={ticketRef}>
             <div className="ticket-header">
               <Ticket size={20} />
@@ -170,78 +267,126 @@ const FormAbsen = () => {
 
           <p className="screenshot-hint">Simpan nomor ini. Jika tertutup, Anda bisa scan ulang QR Code untuk melihat tiket ini kembali.</p>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="form-absen-container">
-      <div className="form-card">
-        <div className="form-header">
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/7/79/Juanda_International_Airport_Logo.png" 
-            alt="Logo Juanda" 
-            style={{ maxWidth: '200px', height: 'auto', marginBottom: '15px' }} 
-          />
-          <h1>Form Kehadiran</h1>
-          <p>Isi data diri Anda untuk mendapatkan nomor undian acara.</p>
+      <div className="form-logos-header">
+        <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="form-logo-juanda" />
+        <img src="/assets.png" alt="Injourney Logo" className="form-logo-injourney" />
+      </div>
+      <div className="form-content-wrapper">
+        <img
+          src="/HUTRI81_FA_Logo__Main Logo Merah Hitam Latar Putih.png"
+          alt="Logo HUT RI 81"
+          className="hut81-logo"
+        />
+        <div className="form-card">
+          <div className="form-header">
+            {isFormOpen && (
+              <>
+              <h1>Form Kehadiran</h1>
+              <p>Isi data diri Anda untuk mendapatkan nomor undian acara.</p>
+            </>
+          )}
         </div>
-        
-        <form onSubmit={handleSubmit} className="absen-form">
-          <div className="form-group">
-            <label>Nama Lengkap</label>
-            <input 
-              type="text" 
-              placeholder="Masukkan nama lengkap" 
-              value={formData.namaLengkap}
-              onChange={(e) => setFormData({...formData, namaLengkap: e.target.value})}
-              required
-            />
-          </div>
 
-          <div className="form-group">
-            <label>NIK / ID Karyawan</label>
-            <input 
-              type="text" 
-              placeholder="Masukkan NIK" 
-              value={formData.nik}
-              onChange={(e) => setFormData({...formData, nik: e.target.value})}
-              required
-            />
+        {!isFormOpen ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '50px 30px',
+            background: 'linear-gradient(145deg, #fffafa, #fff0f0)',
+            borderRadius: '16px',
+            border: '1px solid #fee2e2',
+            boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(239, 68, 68, 0.05)',
+            marginTop: '20px'
+          }}>
+            <h2 style={{
+              color: '#dc2626',
+              marginBottom: '16px',
+              fontSize: '1.75rem',
+              fontWeight: '700',
+              letterSpacing: '-0.5px'
+            }}>
+              Formulir Ditutup
+            </h2>
+            <p style={{
+              color: '#64748b',
+              fontSize: '1.1rem',
+              lineHeight: '1.6',
+              maxWidth: '80%',
+              margin: '0 auto'
+            }}>
+              Pengisian data kehadiran untuk acara ini telah dihentikan oleh pihak penyelenggara. Terima kasih atas partisipasi Anda.
+            </p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="absen-form">
+            <div className="form-group">
+              <label>Nama Lengkap</label>
+              <input
+                type="text"
+                placeholder="Masukkan nama lengkap"
+                value={formData.namaLengkap}
+                onChange={(e) => setFormData({ ...formData, namaLengkap: e.target.value })}
+                required
+              />
+            </div>
 
-          <div className="form-group">
-            <label>Unit / Divisi</label>
-            <select 
-              value={formData.unit}
-              onChange={(e) => setFormData({...formData, unit: e.target.value})}
-              required
-            >
-              <option value="" disabled>Pilih Unit</option>
-              {units.map(u => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-          </div>
+            <div className="form-group">
+              <label>NIK / ID Karyawan</label>
+              <input
+                type="text"
+                placeholder="Masukkan NIK"
+                value={formData.nik}
+                onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+                required
+              />
+            </div>
 
-          <div className="form-group">
-            <label>Status Pegawai</label>
-            <select 
-              value={formData.statusPegawai}
-              onChange={(e) => setFormData({...formData, statusPegawai: e.target.value})}
-              required
-            >
-              <option value="" disabled>Pilih Status</option>
-              {statuses.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
+            <div className="form-group">
+              <label>Unit / Divisi</label>
+              <select
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                required
+              >
+                <option value="" disabled>Pilih Unit</option>
+                {units.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
 
-          <button type="submit" className="submit-btn" disabled={isLoading}>
-            {isLoading ? 'Memproses...' : 'Kirim Absensi & Dapatkan Nomor'}
-          </button>
-        </form>
+            <div className="form-group">
+              <label>Status Pegawai</label>
+              <select
+                value={formData.statusPegawai}
+                onChange={(e) => setFormData({ ...formData, statusPegawai: e.target.value })}
+                required
+              >
+                <option value="" disabled>Pilih Status</option>
+                {statuses.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <button type="submit" className="submit-btn" disabled={isLoading}>
+              {isLoading ? 'Memproses Data...' : 'Kirim Absensi & Dapatkan Nomor'}
+            </button>
+            {isLoading && (
+              <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.85rem', marginTop: '12px', lineHeight: '1.4' }}>
+                Mohon tunggu sebentar, data sedang diproses.<br/>
+                <span style={{ color: '#ef4444', fontWeight: '500' }}>Jangan tutup halaman ini.</span> (Bisa memakan waktu hingga 10 detik jika antrean ramai)
+              </p>
+            )}
+          </form>
+        )}
+        </div>
       </div>
     </div>
   );

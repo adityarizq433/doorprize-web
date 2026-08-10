@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { ref, onValue } from 'firebase/database';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { Users, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './Dashboard.css'; // Reuse dashboard styles for container/card
@@ -11,14 +11,11 @@ const Participants = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const participantsRef = ref(db, 'participants');
-    const unsubscribe = onValue(participantsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        setParticipants(Object.values(data));
-      } else {
-        setParticipants([]);
-      }
+    const participantsRef = collection(db, 'participants');
+    const unsubscribe = onSnapshot(participantsRef, (snapshot) => {
+      const data = [];
+      snapshot.forEach(doc => data.push(doc.data()));
+      setParticipants(data);
       setLoading(false);
     });
 

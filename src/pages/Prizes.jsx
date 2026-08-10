@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { ref, onValue } from 'firebase/database';
-import { ChevronLeft } from 'lucide-react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { ChevronLeft, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { deletePrize } from '../services/db';
+import Swal from 'sweetalert2';
 import './Prizes.css';
 
 const Prizes = () => {
@@ -10,17 +12,34 @@ const Prizes = () => {
   const [activeTab, setActiveTab] = useState('doorprize');
 
   useEffect(() => {
-    const prizesRef = ref(db, 'prizes');
-    const unsubscribe = onValue(prizesRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        setPrizes(Object.values(data));
-      } else {
-        setPrizes([]);
-      }
+    const prizesRef = collection(db, 'prizes');
+    const unsubscribe = onSnapshot(prizesRef, (snapshot) => {
+      const list = [];
+      snapshot.forEach(doc => list.push(doc.data()));
+      setPrizes(list);
     });
     return () => unsubscribe();
   }, []);
+
+  const handleDeletePrize = async (prize) => {
+    const result = await Swal.fire({
+      title: 'Hapus Hadiah?',
+      text: `Anda yakin ingin menghapus hadiah "${prize.name}"? Stok tersisa: ${prize.units}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      const success = await deletePrize(prize.id);
+      if (success) {
+        Swal.fire('Terhapus!', 'Hadiah berhasil dihapus.', 'success');
+      }
+    }
+  };
 
   return (
     <div className="prizes-page">
@@ -58,6 +77,13 @@ const Prizes = () => {
             <div key={prize.id} className="prize-card">
               <div className="prize-image-container">
                 <span className="unit-badge">{prize.units} Unit</span>
+                <button 
+                  className="delete-prize-btn" 
+                  onClick={() => handleDeletePrize(prize)}
+                  title="Hapus Hadiah"
+                >
+                  <Trash2 size={16} />
+                </button>
                 <img src={prize.image} alt={prize.name} className="prize-image" />
               </div>
               <div className="prize-info">

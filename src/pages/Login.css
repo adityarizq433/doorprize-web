@@ -3,23 +3,44 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f0f4f8; /* Light grayish blue background */
+  background-color: #FDFBF7;
+  /* Putih Awan */
+  position: relative;
   padding: 20px;
   font-family: 'Inter', 'Outfit', sans-serif;
+  z-index: 1;
+}
+
+.login-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/bglogin.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: 1;
+  /* Reset opacity ke 1 agar warna asli SVG terlihat */
+  z-index: -1;
 }
 
 .login-card {
   background: white;
   width: 100%;
   max-width: 420px;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(228, 35, 43, 0.08);
   position: relative;
   overflow: hidden;
   padding: 40px 35px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  border-top: 6px solid #E4232B;
+  /* Merah Merdeka */
 }
 
 .card-top-accent {
@@ -28,33 +49,52 @@
   left: 0;
   right: 0;
   height: 6px;
-  background-color: #d79f25; /* Golden yellow border */
+  background-color: #E4232B;
+  /* Merah Merdeka */
 }
 
-.icon-container {
-  margin-bottom: 24px;
-}
-
-.icon-circle {
-  width: 64px;
-  height: 64px;
-  background-color: #fbbf24; /* Brighter gold for icon */
-  border-radius: 50%;
+.logos-header {
+  position: absolute;
+  top: 35px;
+  left: 0;
+  width: 100%;
+  padding: 0 50px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.logo-injourney {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-juanda {
+  height: 55px;
+  width: auto;
+  object-fit: contain;
 }
 
 .login-title {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #1A1A1A;
+  /* Hitam Legam */
   margin-bottom: 8px;
+}
+
+.highlight-red {
+  color: #E4232B;
+  /* Merah Merdeka */
 }
 
 .login-subtitle {
   font-size: 0.9rem;
-  color: #64748b;
+  color: #6B6660;
+  /* Teks Sekunder */
   margin-bottom: 30px;
 }
 
@@ -86,7 +126,8 @@
 .input-group label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #475569;
+  color: #1A1A1A;
+  /* Hitam Legam */
   text-transform: capitalize;
   letter-spacing: 0.5px;
 }
@@ -116,8 +157,10 @@
 }
 
 .input-wrapper input:focus {
-  border-color: #d79f25;
+  border-color: #E4232B;
+  /* Merah Merdeka */
   background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(228, 35, 43, 0.1);
 }
 
 .input-wrapper input::placeholder {
@@ -126,8 +169,10 @@
 }
 
 .login-button {
-  background-color: #d79f25;
-  color: #1e293b;
+  background-color: #E4232B;
+  /* Merah Merdeka */
+  color: #FDFBF7;
+  /* Putih Awan */
   font-weight: 700;
   font-size: 1rem;
   padding: 14px;
@@ -135,11 +180,15 @@
   border-radius: 6px;
   cursor: pointer;
   margin-top: 10px;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(228, 35, 43, 0.2);
 }
 
 .login-button:hover {
-  background-color: #b4851f;
+  background-color: #7A1220;
+  /* Marun Tua */
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(122, 18, 32, 0.25);
 }
 
 .login-button:disabled {
@@ -150,7 +199,8 @@
 .login-footer {
   margin-top: 35px;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #6B6660;
+  /* Teks Sekunder */
   letter-spacing: 0.5px;
 }
 
@@ -170,4 +220,33 @@
 
 .password-toggle-btn:hover {
   color: #64748b;
+}
+
+/* Responsiveness for Mobile & Tablet */
+@media (max-width: 768px) {
+  .logos-header {
+    padding: 0 20px;
+  }
+  .logo-injourney {
+    height: 60px;
+  }
+  .logo-juanda {
+    height: 45px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logos-header {
+    padding: 0 15px;
+    top: 20px;
+  }
+  .logo-injourney {
+    height: 45px;
+  }
+  .logo-juanda {
+    height: 35px;
+  }
+  .login-card {
+    padding: 30px 20px;
+  }
 }

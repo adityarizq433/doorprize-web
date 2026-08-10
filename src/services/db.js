@@ -1,116 +1,193 @@
 import { db } from '../firebase';
-import { ref, set, get, child, update } from 'firebase/database';
-
-// seed dummy has been removed
+import { collection, doc, getDocs, getDoc, setDoc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
+import Swal from 'sweetalert2';
 
 // Mengambil semua peserta yang belum menang
 export const getEligibleParticipants = async () => {
-  const dbRef = ref(db);
-  const snapshot = await get(child(dbRef, 'participants'));
-  if (snapshot.exists()) {
-    const all = snapshot.val();
-    return Object.values(all).filter(p => !p.doorprize || p.doorprize === '');
-  }
-  return [];
+  const querySnapshot = await getDocs(collection(db, 'participants'));
+  const eligible = [];
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    if (!data.doorprize || data.doorprize === '') {
+      eligible.push(data);
+    }
+  });
+  return eligible;
+};
+
+// Mengambil data peserta untuk perhitungan kuota divisi
+export const getParticipantsData = async () => {
+  const querySnapshot = await getDocs(collection(db, 'participants'));
+  const all = [];
+  const eligible = [];
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    all.push(data);
+    if (!data.doorprize || data.doorprize === '') {
+      eligible.push(data);
+    }
+  });
+  return { all, eligible };
 };
 
 // Mencatat pemenang ke database
 export const recordWinners = async (winnersList, prizeInfo) => {
-  const updates = {};
+  const batch = writeBatch(db);
   
   // Update status peserta
   winnersList.forEach(winner => {
-    // Kita simpan nama hadiahnya langsung, bukan cuma "Sudah Menang"
-    updates[`participants/u${winner.nomor}/doorprize`] = prizeInfo.name;
+    const participantRef = doc(db, 'participants', `u${winner.nomor}`);
+    batch.update(participantRef, { doorprize: prizeInfo.name });
   });
 
   // Kurangi stok hadiah
-  const dbRef = ref(db);
-  const prizeSnap = await get(child(dbRef, `prizes/${prizeInfo.id}`));
+  const prizeRef = doc(db, 'prizes', prizeInfo.id);
+  const prizeSnap = await getDoc(prizeRef);
   if(prizeSnap.exists()) {
-    const currentUnits = prizeSnap.val().units;
-    updates[`prizes/${prizeInfo.id}/units`] = Math.max(0, currentUnits - winnersList.length);
+    const currentUnits = prizeSnap.data().units;
+    batch.update(prizeRef, { units: Math.max(0, currentUnits - winnersList.length) });
   }
 
   // Rekam riwayat undian
   const drawId = Date.now().toString();
-  updates[`drawHistory/${drawId}`] = {
+  const drawRef = doc(db, 'drawHistory', drawId);
+  batch.set(drawRef, {
     id: drawId,
     timestamp: new Date().toISOString(),
     prizeName: prizeInfo.name,
     tier: prizeInfo.tier,
     winners: winnersList
-  };
+  });
 
   // Update Game State
-  updates['gameState/isSpinning'] = false;
-  updates['gameState/currentPrize'] = prizeInfo.name;
-  updates['gameState/currentTier'] = prizeInfo.tier;
-  updates['gameState/recentWinners'] = winnersList; // simpan object utuh
+  const gameStateRef = doc(db, 'gameState', 'state');
+  batch.set(gameStateRef, {
+    isSpinning: false,
+    currentPrize: prizeInfo.name,
+    currentTier: prizeInfo.tier,
+    recentWinners: winnersList
+  }, { merge: true });
 
-  await update(ref(db), updates);
+  await batch.commit();
+};
+
+// Mencatat pemenang Doorprize dengan hadiah yang berbeda-beda
+export const recordMultiPrizeWinners = async (winnersList) => {
+  const batch = writeBatch(db);
+  
+  const prizeCountMap = {};
+  const drawId = Date.now().toString();
+
+  winnersList.forEach(winner => {
+    // 1. Update status peserta
+    const participantRef = doc(db, 'participants', `u${winner.nomor}`);
+    batch.update(participantRef, { doorprize: winner.wonPrize.name });
+
+    // Hitung pengurangan stok
+    if (!prizeCountMap[winner.wonPrize.id]) {
+      prizeCountMap[winner.wonPrize.id] = { ref: doc(db, 'prizes', winner.wonPrize.id), count: 0 };
+    }
+    prizeCountMap[winner.wonPrize.id].count++;
+  });
+
+  // 2. Kurangi stok masing-masing hadiah
+  for (const prizeId in prizeCountMap) {
+    const { ref, count } = prizeCountMap[prizeId];
+    const prizeSnap = await getDoc(ref);
+    if(prizeSnap.exists()) {
+      const currentUnits = prizeSnap.data().units;
+      batch.update(ref, { units: Math.max(0, currentUnits - count) });
+    }
+  }
+
+  // 3. Rekam riwayat undian
+  const drawRef = doc(db, 'drawHistory', drawId);
+  batch.set(drawRef, {
+    id: drawId,
+    timestamp: new Date().toISOString(),
+    prizeName: "Doorprize",
+    tier: "doorprize",
+    winners: winnersList
+  });
+
+  // 4. Update Game State
+  const gameStateRef = doc(db, 'gameState', 'state');
+  batch.set(gameStateRef, {
+    isSpinning: false,
+    currentPrize: "Doorprize",
+    currentTier: "doorprize",
+    recentWinners: winnersList
+  }, { merge: true });
+
+  await batch.commit();
 };
 
 // Reset semua data pemenang dan stok hadiah
 export const resetAllData = async () => {
-  const dbRef = ref(db);
-  const updates = {};
+  const batch = writeBatch(db);
 
   // 1. Hapus drawHistory
-  updates['drawHistory'] = null;
+  const drawSnap = await getDocs(collection(db, 'drawHistory'));
+  drawSnap.forEach(docSnap => {
+    batch.delete(docSnap.ref);
+  });
 
   // 2. Reset status doorprize peserta
-  const partSnap = await get(child(dbRef, 'participants'));
-  if (partSnap.exists()) {
-    const participants = partSnap.val();
-    Object.keys(participants).forEach(key => {
-      updates[`participants/${key}/doorprize`] = null;
-    });
-  }
+  const partSnap = await getDocs(collection(db, 'participants'));
+  partSnap.forEach(docSnap => {
+    batch.update(docSnap.ref, { doorprize: '' });
+  });
 
   // 3. Reset stok hadiah (sementara kita set ke 50 atau kembalikan)
-  // idealnya tiap hadiah punya originalUnits, tapi karena belum ada, kita reset ke angka tertentu
-  // Mari kita ambil dulu prizes, kalau units nya < 10 kita set jadi 10
-  const prizeSnap = await get(child(dbRef, 'prizes'));
-  if (prizeSnap.exists()) {
-    const prizes = prizeSnap.val();
-    Object.keys(prizes).forEach(key => {
-      // Sebagai contoh, kita set stok kembali ke 50. 
-      // Anda bisa mengganti ini nanti di halaman dashboard
-      updates[`prizes/${key}/units`] = 50; 
-    });
-  }
+  const prizeSnap = await getDocs(collection(db, 'prizes'));
+  prizeSnap.forEach(docSnap => {
+    batch.update(docSnap.ref, { units: 50 }); 
+  });
 
   // 4. Reset gameState
-  updates['gameState'] = null;
+  const gameStateRef = doc(db, 'gameState', 'state');
+  batch.set(gameStateRef, {
+    isSpinning: false,
+    currentPrize: '',
+    currentTier: '',
+    recentWinners: []
+  });
 
-  await update(ref(db), updates);
+  await batch.commit();
   return true;
 };
 
 // Set status spinning
-export const setSpinningState = async (isSpinning, prizeName, prizeTier) => {
-  const updates = {
-    'gameState/isSpinning': isSpinning
-  };
-  if (prizeName) {
-    updates['gameState/currentPrize'] = prizeName;
-  }
-  if (prizeTier) {
-    updates['gameState/currentTier'] = prizeTier;
-  }
-  await update(ref(db), updates);
+export const setSpinningState = async (isSpinning, prizeName = '', prizeTier = '') => {
+  const gameStateRef = doc(db, 'gameState', 'state');
+  const updates = { isSpinning };
+  if (prizeName) updates.currentPrize = prizeName;
+  if (prizeTier) updates.currentTier = prizeTier;
+  await setDoc(gameStateRef, updates, { merge: true });
 };
 
 // Add a new prize to the database
 export const addPrize = async (prizeData) => {
   try {
-    const newPrizeRef = child(ref(db, 'prizes'), prizeData.id);
-    await set(newPrizeRef, prizeData);
+    const prizeRef = doc(db, 'prizes', prizeData.id);
+    await setDoc(prizeRef, prizeData);
     return true;
   } catch (error) {
     console.error("Gagal menambahkan hadiah:", error);
-    alert("Gagal menambahkan hadiah: " + error.message);
+    Swal.fire({ icon: 'error', title: 'Gagal', text: "Gagal menambahkan hadiah: " + error.message });
+    return false;
+  }
+};
+
+// Delete a prize from the database
+export const deletePrize = async (prizeId) => {
+  try {
+    const prizeRef = doc(db, 'prizes', prizeId);
+    await deleteDoc(prizeRef);
+    return true;
+  } catch (error) {
+    console.error("Gagal menghapus hadiah:", error);
+    Swal.fire({ icon: 'error', title: 'Gagal', text: "Gagal menghapus hadiah: " + error.message });
     return false;
   }
 };

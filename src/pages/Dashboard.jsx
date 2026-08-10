@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Users, Gift, Trophy, Download, Upload, Database } from 'lucide-react';
+import { Users, Gift, Trophy, Download, Upload, Database, Power } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Papa from 'papaparse';
 import { db } from '../firebase';
-import { ref, onValue, set, get } from 'firebase/database';
+import { collection, doc, onSnapshot, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { addPrize, resetAllData } from '../services/db';
 import { saveAs } from 'file-saver';
 import { Link } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -18,6 +19,7 @@ const Dashboard = () => {
     sisaHadiah: 0,
     totalPemenang: 0
   });
+  const [isFormOpen, setIsFormOpen] = useState(true);
 
   const [newPrize, setNewPrize] = useState({
     name: '',
@@ -30,58 +32,65 @@ const Dashboard = () => {
 
   useEffect(() => {
     // 1. Listen Participants
-    const participantsRef = ref(db, 'participants');
-    const unsubParticipants = onValue(participantsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const list = Object.values(data);
-        const winners = list.filter(p => p.doorprize && p.doorprize !== '').length;
-        
-        // Simpan list peserta
-        setParticipants(list);
-        
-        // Calculate units for chart
-        const unitCounts = {};
-        list.forEach(p => {
-          const unit = p.unit || 'Lainnya';
-          unitCounts[unit] = (unitCounts[unit] || 0) + 1;
-        });
-        
-        const formattedChartData = Object.keys(unitCounts).map(unit => ({
-          name: unit,
-          value: unitCounts[unit]
-        })).sort((a, b) => b.value - a.value); // Sort descending
+    const participantsRef = collection(db, 'participants');
+    const unsubParticipants = onSnapshot(participantsRef, (snapshot) => {
+      const list = [];
+      snapshot.forEach(docSnap => list.push(docSnap.data()));
+      const winners = list.filter(p => p.doorprize && p.doorprize !== '').length;
+      
+      // Simpan list peserta
+      setParticipants(list);
+      
+      // Calculate units for chart
+      const unitCounts = {};
+      list.forEach(p => {
+        const unit = p.unit || 'Lainnya';
+        unitCounts[unit] = (unitCounts[unit] || 0) + 1;
+      });
+      
+      const formattedChartData = Object.keys(unitCounts).map(unit => ({
+        name: unit,
+        value: unitCounts[unit]
+      })).sort((a, b) => b.value - a.value); // Sort descending
 
-        setChartData(formattedChartData);
-        
-        setStats(prev => ({
-          ...prev,
-          totalPeserta: list.length,
-          totalPemenang: winners
-        }));
-      }
+      setChartData(formattedChartData);
+      
+      setStats(prev => ({
+        ...prev,
+        totalPeserta: list.length,
+        totalPemenang: winners
+      }));
     });
 
     // 2. Listen Prizes
-    const prizesRef = ref(db, 'prizes');
-    const unsubPrizes = onValue(prizesRef, (snapshot) => {
+    const prizesRef = collection(db, 'prizes');
+    const unsubPrizes = onSnapshot(prizesRef, (snapshot) => {
+      let sisa = 0;
+      snapshot.forEach(docSnap => {
+        sisa += docSnap.data().units;
+      });
+      setStats(prev => ({
+        ...prev,
+        sisaHadiah: sisa,
+        totalHadiah: 50 // Mock target
+      }));
+    });
+
+    // 3. Listen Form Settings
+    const settingsRef = doc(db, 'settings', 'general');
+    const unsubSettings = onSnapshot(settingsRef, (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.val();
-        let sisa = 0;
-        Object.values(data).forEach(p => {
-          sisa += p.units;
-        });
-        setStats(prev => ({
-          ...prev,
-          sisaHadiah: sisa,
-          totalHadiah: 50 // Mock target
-        }));
+        setIsFormOpen(snapshot.data().isFormOpen);
+      } else {
+        // If not set, default is true
+        setIsFormOpen(true);
       }
     });
 
     return () => {
       unsubParticipants();
       unsubPrizes();
+      unsubSettings();
     };
   }, []);
 
@@ -89,7 +98,7 @@ const Dashboard = () => {
     e.preventDefault();
     const parsedUnits = parseInt(newPrize.units);
     if (!newPrize.name || !newPrize.image || isNaN(parsedUnits) || parsedUnits < 1) {
-      alert("Mohon lengkapi semua data hadiah dengan benar.");
+      Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Mohon lengkapi semua data hadiah dengan benar.' });
       return;
     }
     const prizeId = 'p' + Date.now();
@@ -100,7 +109,7 @@ const Dashboard = () => {
     };
     const success = await addPrize(prizeData);
     if (success) {
-      alert("Hadiah berhasil ditambahkan!");
+      Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Hadiah berhasil ditambahkan!' });
       setNewPrize({ name: '', tier: 'doorprize', units: '1', image: '' });
     }
   };
@@ -129,10 +138,19 @@ const Dashboard = () => {
           });
           
           if(Object.keys(parsedData).length > 0) {
-            await set(ref(db, 'participants'), parsedData);
-            alert(`Berhasil mengimpor ${Object.keys(parsedData).length} peserta!`);
+            const batch = writeBatch(db);
+            let opCount = 0;
+            
+            Object.keys(parsedData).forEach(key => {
+              const pRef = doc(db, 'participants', key);
+              batch.set(pRef, parsedData[key]);
+              opCount++;
+            });
+            
+            await batch.commit();
+            Swal.fire({ icon: 'success', title: 'Berhasil', text: `Berhasil mengimpor ${opCount} peserta!` });
           } else {
-            alert("Gagal membaca file CSV. Pastikan ada header kolom bernama 'Nomor' atau 'nomor'.");
+            Swal.fire({ icon: 'error', title: 'Gagal', text: "Gagal membaca file CSV. Pastikan ada header kolom bernama 'Nomor' atau 'nomor'." });
           }
         }
       });
@@ -141,22 +159,75 @@ const Dashboard = () => {
   };
 
   const handleExportReport = async () => {
-    // We fetch from Firebase and export once using get()
-    const snapshot = await get(ref(db, 'participants'));
-    if(snapshot.exists()) {
-      const data = snapshot.val();
-      const csv = Papa.unparse(Object.values(data));
+    // We fetch from Firebase and export once using getDocs()
+    const snapshot = await getDocs(collection(db, 'participants'));
+    if(!snapshot.empty) {
+      const data = [];
+      snapshot.forEach(docSnap => data.push(docSnap.data()));
+      const csv = Papa.unparse(data);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       saveAs(blob, 'laporan_peserta_doorprize.csv');
     } else {
-      alert("Tidak ada data untuk diexport");
+      Swal.fire({ icon: 'info', title: 'Info', text: 'Tidak ada data untuk diexport' });
     }
   };
 
   const handleResetData = async () => {
-    if(window.confirm("PERINGATAN: Apakah Anda yakin ingin mereset semua data pemenang dan stok hadiah? Tindakan ini tidak dapat dibatalkan!")) {
+    const result = await Swal.fire({
+      title: 'PERINGATAN',
+      text: "Apakah Anda yakin ingin mereset semua data pemenang dan stok hadiah? Tindakan ini tidak dapat dibatalkan!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Reset Data!',
+      cancelButtonText: 'Batal'
+    });
+    
+    if(result.isConfirmed) {
       await resetAllData();
-      alert("Data berhasil direset!");
+      Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Data berhasil direset!' });
+    }
+  };
+
+  const handleClearParticipants = async () => {
+    const result = await Swal.fire({
+      title: 'PERINGATAN',
+      text: "Apakah Anda yakin ingin menghapus SELURUH data peserta? Data tidak dapat dikembalikan!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus Semua!',
+      cancelButtonText: 'Batal'
+    });
+    
+    if(result.isConfirmed) {
+      const snapshot = await getDocs(collection(db, 'participants'));
+      const batch = writeBatch(db);
+      snapshot.forEach(docSnap => {
+        batch.delete(docSnap.ref);
+      });
+      await batch.commit();
+      Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Seluruh data peserta berhasil dihapus!' });
+    }
+  };
+
+  const handleToggleForm = async () => {
+    const newState = !isFormOpen;
+    const result = await Swal.fire({
+      title: 'Konfirmasi',
+      text: `Apakah Anda yakin ingin ${newState ? 'MEMBUKA' : 'MENUTUP'} form absensi?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: newState ? '#22c55e' : '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Lanjutkan',
+      cancelButtonText: 'Batal'
+    });
+    
+    if(result.isConfirmed) {
+      await setDoc(doc(db, 'settings', 'general'), { isFormOpen: newState }, { merge: true });
     }
   };
 
@@ -176,9 +247,21 @@ const Dashboard = () => {
             ref={fileInputRef}
             onChange={handleImportCSV}
           />
+          <button 
+            className="export-button" 
+            style={{ backgroundColor: isFormOpen ? '#22c55e' : '#ef4444', color: 'white' }} 
+            onClick={handleToggleForm}
+          >
+            <Power size={18} />
+            {isFormOpen ? 'Tutup Absen' : 'Buka Absen'}
+          </button>
           <button className="export-button" style={{backgroundColor: '#ef4444', color: 'white'}} onClick={handleResetData}>
             <Database size={18} />
-            Reset Data
+            Reset Riwayat
+          </button>
+          <button className="export-button" style={{backgroundColor: '#b91c1c', color: 'white'}} onClick={handleClearParticipants}>
+            <Users size={18} />
+            Hapus Peserta
           </button>
           <button className="export-button" style={{backgroundColor: '#e2e8f0'}} onClick={() => fileInputRef.current.click()}>
             <Upload size={18} />
@@ -192,7 +275,7 @@ const Dashboard = () => {
       </div>
 
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card theme-card">
           <div className="stat-header">
             <div>
               <p className="stat-title">TOTAL PESERTA</p>
@@ -209,7 +292,7 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card theme-card">
           <div className="stat-header">
             <div>
               <p className="stat-title">SISA HADIAH</p>
@@ -226,7 +309,7 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card theme-card">
           <div className="stat-header">
             <div>
               <p className="stat-title">TOTAL PEMENANG</p>
@@ -244,7 +327,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="prize-form-card">
+      <div className="prize-form-card theme-card">
         <h3 className="chart-title mb-4">Input Hadiah Baru</h3>
         <form onSubmit={handleAddPrize} className="prize-form">
           <div className="form-group">
@@ -278,16 +361,16 @@ const Dashboard = () => {
         </form>
       </div>
 
-      <div className="chart-card">
+      <div className="chart-card theme-card">
         <div className="chart-header">
           <h3 className="chart-title">Kehadiran Peserta Berdasarkan Unit</h3>
         </div>
-        <div className="chart-container">
-          <ResponsiveContainer width="100%" height={350}>
+        <div className="chart-container" style={{ overflowY: 'auto', maxHeight: '600px', overflowX: 'hidden' }}>
+          <ResponsiveContainer width="100%" height={Math.max(350, chartData.length * 45)}>
             <BarChart layout="vertical" data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={true} stroke="#f1f5f9" />
               <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-              <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 500 }} width={120} />
+              <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 500 }} width={250} interval={0} />
               <Tooltip cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }} />
               <Bar dataKey="value" fill="#e2e8f0" radius={[0, 4, 4, 0]} activeBar={{ fill: '#fbc638' }} barSize={24} />
             </BarChart>

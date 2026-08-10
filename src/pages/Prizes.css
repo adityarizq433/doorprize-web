@@ -123,3 +123,57 @@
   color: #d79f25;
   font-weight: 500;
 }
+
+.delete-prize-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #ef4444;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: all 0.2s;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.delete-prize-btn:hover {
+  background-color: #ef4444;
+  color: white;
+}
+
+/* Responsiveness for Mobile & Tablet */
+@media (max-width: 768px) {
+  .prizes-page {
+    padding: 20px;
+  }
+  .prizes-header {
+    margin-bottom: 30px;
+  }
+  .prize-tabs {
+    flex-wrap: wrap;
+  }
+  .prize-tab-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+  }
+  .prizes-grid {
+    gap: 16px;
+  }
+  .prize-card {
+    width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 480px) {
+  .prize-card {
+    width: 100%;
+  }
+}

@@ -3,8 +3,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f1f5f9;
-  background-image: url('/bg-tower.jpg');
+  background-color: #FDFBF7;
+  background-image: url('/bgform.png');
   background-size: cover;
   background-position: center top;
   /* Disable fixed attachment on mobile as it causes massive zoom bugs on iOS/Android */
@@ -12,6 +12,7 @@
   padding: 20px;
   font-family: 'Inter', sans-serif;
   position: relative;
+  z-index: 1;
 }
 
 @media (min-width: 768px) {
@@ -21,28 +22,21 @@
 }
 
 .form-absen-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5); /* Overlay gelap agar form tetap terbaca */
-  z-index: 0;
+  display: none;
 }
 
 .form-absen-container.success-state {
   /* keep the background image */
 }
 
-.form-card, .success-card {
-  background: rgba(255, 255, 255, 0.95); /* Efek glassmorphism */
-  backdrop-filter: blur(10px);
+.form-card,
+.success-card {
+  background: white;
   width: 100%;
   max-width: 480px;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 40px 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(228, 35, 43, 0.08);
   position: relative;
   z-index: 1;
 }
@@ -99,25 +93,29 @@
 
 .absen-form input:focus,
 .absen-form select:focus {
-  border-color: #d79f25;
+  border-color: #E4232B;
   background-color: white;
+  box-shadow: 0 0 0 3px rgba(228, 35, 43, 0.1);
 }
 
 .submit-btn {
-  background-color: #d79f25;
-  color: #0f172a;
+  background-color: #E4232B;
+  color: #FDFBF7;
   border: none;
   padding: 16px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 700;
   font-size: 1.05rem;
   cursor: pointer;
   margin-top: 10px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(228, 35, 43, 0.2);
 }
 
 .submit-btn:hover:not(:disabled) {
-  background-color: #fbc638;
+  background-color: #7A1220;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(122, 18, 32, 0.25);
 }
 
 .submit-btn:disabled {
@@ -180,24 +178,24 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: #d79f25;
-  color: #0f172a;
+  background-color: #E4232B;
+  color: #FDFBF7;
   font-weight: 700;
   padding: 14px 24px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   width: 100%;
   margin-bottom: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 1.05rem;
-  box-shadow: 0 4px 15px rgba(215, 159, 37, 0.2);
+  box-shadow: 0 4px 12px rgba(228, 35, 43, 0.2);
 }
 
 .btn-download-ticket:hover {
-  background-color: #fbc638;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(215, 159, 37, 0.3);
+  background-color: #7A1220;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(122, 18, 32, 0.25);
 }
 
 .reset-link {
@@ -215,4 +213,72 @@
 
 .reset-link:hover {
   color: #ef4444;
+}
+
+.form-logos-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  box-sizing: border-box;
+  position: absolute;
+  top: 35px;
+  left: 0;
+  padding: 0 50px;
+}
+
+.form-logo-juanda {
+  height: 55px;
+  width: auto;
+  object-fit: contain;
+  max-width: 45%;
+}
+
+.form-logo-injourney {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+  max-width: 45%;
+}
+
+.hut81-logo {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin-bottom: 15px;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .form-absen-container {
+    background-size: cover;
+    background-position: left top;
+    padding-top: 80px;
+  }
+  .form-logos-header {
+    position: absolute;
+    top: 15px;
+    padding: 0 15px;
+    margin: 0;
+  }
+  .form-logo-juanda {
+    height: 35px;
+  }
+  .form-logo-injourney {
+    height: 45px;
+  }
+  .hut81-logo {
+    max-width: 220px;
+    margin-bottom: 10px;
+  }
+}
+
+.form-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  z-index: 1;
 }

@@ -1,12 +1,17 @@
-import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, QrCode, Dices, Gift, History, HelpCircle, Shield, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, QrCode, Dices, Gift, History, HelpCircle, Shield, LogOut, Menu, X, ChevronLeft } from 'lucide-react';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import './DashboardLayout.css';
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const isSpinBgPage = ['/dashboard', '/doorprize', '/grandprize', '/history', '/participants', '/prizes'].some(path => location.pathname.includes(path));
+  const isAttendancePage = location.pathname.includes('/attendance');
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -15,9 +20,26 @@ const DashboardLayout = () => {
 
   return (
     <div className="dashboard-container">
+      {!isSidebarOpen && (
+        <button 
+          className="floating-toggle-btn"
+          onClick={() => setIsSidebarOpen(true)}
+          title="Buka Sidebar"
+        >
+          <Menu size={24} />
+        </button>
+      )}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${!isSidebarOpen ? 'closed' : ''}`}>
         <div className="sidebar-header">
+          <button 
+            className="close-sidebar-btn"
+            onClick={() => setIsSidebarOpen(false)}
+            title="Tutup Sidebar"
+          >
+            <Menu size={24} />
+          </button>
           <img 
             src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Flag_of_Indonesia.svg/500px-Flag_of_Indonesia.svg.png" 
             alt="Bendera Indonesia"
@@ -71,7 +93,11 @@ const DashboardLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="main-content">
+      <main className={`main-content ${isSpinBgPage ? 'spin-layout-bg' : ''} ${isAttendancePage ? 'login-layout-bg' : ''}`}>
+        <div className="dashboard-logos-header">
+          <img src="/Juanda_International_Airport_Logo.png" alt="Juanda Airport Logo" className="dashboard-logo-juanda" />
+          <img src="/assets.png" alt="Injourney Logo" className="dashboard-logo-injourney" />
+        </div>
         <Outlet />
       </main>
     </div>
