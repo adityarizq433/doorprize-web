@@ -199,7 +199,7 @@
 
 .spin-layout-bg {
   background-image: url('/bgspinbaru.png');
-  background-size: 100% 100%;
+  background-size: cover;
   background-position: center top;
   background-attachment: fixed;
 }
@@ -207,7 +207,7 @@
 .login-layout-bg {
   background-image: url('/bglogin.png');
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   background-attachment: fixed;
 }
 
@@ -235,11 +235,11 @@
 
   .spin-layout-bg,
   .login-layout-bg {
-    background-size: 100% auto;
-    background-position: center top;
+    background-size: cover;
+    background-position: center;
     background-repeat: no-repeat;
     background-color: #FDFBF7;
-    background-attachment: scroll;
+    background-attachment: fixed;
   }
 
   .dashboard-logos-header {
@@ -267,8 +267,8 @@
 
 @media (max-width: 480px) {
   .dashboard-logos-header {
-    padding: 15px;
-    padding-left: 65px;
+    padding: 20px 15px;
+    padding-left: 80px; /* Make more space for toggle button */
     padding-bottom: 5px;
     gap: 10px;
     justify-content: space-between;
