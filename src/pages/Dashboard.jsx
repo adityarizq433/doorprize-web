@@ -110,7 +110,8 @@ const Dashboard = () => {
     const prizeData = {
       id: prizeId,
       ...newPrize,
-      units: parsedUnits
+      units: parsedUnits,
+      initialUnits: parsedUnits
     };
     const success = await addPrize(prizeData);
     if (success) {

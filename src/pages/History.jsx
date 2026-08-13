@@ -10,9 +10,9 @@ import Swal from 'sweetalert2';
 import './History.css';
 
 const getDisplayPrizeName = (name, tier) => {
-  if (tier === 'grandprize') return 'Grandprize';
+  if (tier === 'grandprize') return `Grandprize - ${name}`;
   if (name === 'Multi Hadiah') return 'Doorprize';
-  if (name?.toLowerCase() === 'mobil') return 'Grandprize';
+  if (name?.toLowerCase() === 'mobil') return `Grandprize - ${name}`;
   return name;
 };
 

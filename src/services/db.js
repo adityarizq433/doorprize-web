@@ -138,10 +138,11 @@ export const resetAllData = async () => {
     batch.update(docSnap.ref, { doorprize: '' });
   });
 
-  // 3. Reset stok hadiah (sementara kita set ke 50 atau kembalikan)
+  // 3. Reset stok hadiah (kembalikan ke stok awal)
   const prizeSnap = await getDocs(collection(db, 'prizes'));
   prizeSnap.forEach(docSnap => {
-    batch.update(docSnap.ref, { units: 50 }); 
+    const data = docSnap.data();
+    batch.update(docSnap.ref, { units: data.initialUnits !== undefined ? data.initialUnits : 50 }); 
   });
 
   // 4. Reset gameState
@@ -196,7 +197,7 @@ export const deletePrize = async (prizeId) => {
 export const updatePrizeQuantity = async (prizeId, newQuantity) => {
   try {
     const prizeRef = doc(db, 'prizes', prizeId);
-    await updateDoc(prizeRef, { units: newQuantity });
+    await updateDoc(prizeRef, { units: newQuantity, initialUnits: newQuantity });
     return true;
   } catch (error) {
     console.error("Gagal mengubah jumlah hadiah:", error);

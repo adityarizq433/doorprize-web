@@ -11,6 +11,7 @@ const FormAbsen = () => {
     namaLengkap: '',
     nik: '',
     unit: '',
+    instansiLain: '',
     statusPegawai: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -43,6 +44,7 @@ const FormAbsen = () => {
   const units = [
     'General Manager',
     'Deputy General Manager',
+    'Instansi Lain',
     'Airport Operation Center',
     'Branch Communication & CSR Department',
     'Legal & Compliance Department',
@@ -71,7 +73,7 @@ const FormAbsen = () => {
   ];
 
 
-  const statuses = ['Organik', 'Tenaga Ahli Daya', 'Magang'];
+  const statuses = ['Organik / PNS', 'Tenaga Ahli Daya', 'Magang'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,12 +81,16 @@ const FormAbsen = () => {
       Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Mohon lengkapi semua data!' });
       return;
     }
+    if (formData.unit === 'Instansi Lain' && !formData.instansiLain) {
+      Swal.fire({ icon: 'warning', title: 'Perhatian', text: 'Mohon ketik nama instansi Anda!' });
+      return;
+    }
 
     setIsLoading(true);
 
     try {
       let assignedNumber = '';
-      
+
       const generateRandomTicket = () => {
         // Menghasilkan angka acak antara 10000 dan 99999
         return Math.floor(10000 + Math.random() * 90000).toString();
@@ -108,7 +114,7 @@ const FormAbsen = () => {
             let userKey = `u${nextNumber}`;
             let participantRef = doc(db, 'participants', userKey);
             let participantDoc = await transaction.get(participantRef);
-            
+
             let attempts = 0;
             // Jika kebetulan nomor tiket sudah ada (sangat jarang), kita buat ulang
             while (participantDoc.exists() && attempts < 5) {
@@ -118,7 +124,7 @@ const FormAbsen = () => {
               participantDoc = await transaction.get(participantRef);
               attempts++;
             }
-            
+
             if (attempts >= 5) {
               throw new Error('SYSTEM_BUSY');
             }
@@ -134,18 +140,18 @@ const FormAbsen = () => {
               nomor: nextNumber,
               namaLengkap: formData.namaLengkap,
               nik: formData.nik,
-              unit: formData.unit,
+              unit: formData.unit === 'Instansi Lain' ? `Instansi Lain - ${formData.instansiLain}` : formData.unit,
               statusPegawai: formData.statusPegawai,
               doorprize: '',
               checkInTime: new Date().toISOString()
             };
 
             transaction.set(participantRef, newParticipant);
-            
+
             // Simpan nomor untuk ditampilkan ke pengguna
             assignedNumber = nextNumber;
           });
-          
+
           transactionSuccess = true;
           break; // Keluar dari loop jika berhasil
         } catch (err) {
@@ -175,10 +181,10 @@ const FormAbsen = () => {
       if (error.message === 'DUPLICATE_NIK') {
         Swal.fire({ icon: 'error', title: 'Gagal', text: 'NIK ini sudah terdaftar! Harap gunakan NIK Anda sendiri.' });
       } else {
-        Swal.fire({ 
-          icon: 'warning', 
-          title: 'Server Sedang Sibuk', 
-          text: 'Mohon maaf, saat ini sedang terjadi antrean. Silakan tunggu beberapa detik dan coba tekan tombol kirim lagi.' 
+        Swal.fire({
+          icon: 'warning',
+          title: 'Server Sedang Sibuk',
+          text: 'Mohon maaf, saat ini sedang terjadi antrean. Silakan tunggu beberapa detik dan coba tekan tombol kirim lagi.'
         });
       }
     } finally {
@@ -218,7 +224,7 @@ const FormAbsen = () => {
 
     if (result.isConfirmed) {
       localStorage.removeItem('doorprize_ticket');
-      setFormData({ namaLengkap: '', nik: '', unit: '', statusPegawai: '' });
+      setFormData({ namaLengkap: '', nik: '', unit: '', instansiLain: '', statusPegawai: '' });
       setNomorUndian('');
       setIsSubmitted(false);
       setTapCount(0);
@@ -247,26 +253,26 @@ const FormAbsen = () => {
           />
           <div className="success-card">
             <div className="success-icon-wrapper" onClick={handleSecretReset} style={{ cursor: 'pointer' }}>
-            <CheckCircle2 size={60} color="#22c55e" />
-          </div>
-          <h2>Kehadiran Berhasil Dicatat!</h2>
-          <p>Terima kasih <strong>{formData.namaLengkap}</strong>, Anda telah resmi terdaftar untuk mengikuti undian doorprize.</p>
-
-          <div className="ticket-box" ref={ticketRef}>
-            <div className="ticket-header">
-              <Ticket size={20} />
-              <span>NOMOR UNDIAN ANDA</span>
+              <CheckCircle2 size={60} color="#22c55e" />
             </div>
-            <div className="ticket-number">{nomorUndian}</div>
+            <h2>Kehadiran Berhasil Dicatat!</h2>
+            <p>Terima kasih <strong>{formData.namaLengkap}</strong>, Anda telah resmi terdaftar untuk mengikuti undian doorprize.</p>
+
+            <div className="ticket-box" ref={ticketRef}>
+              <div className="ticket-header">
+                <Ticket size={20} />
+                <span>NOMOR UNDIAN ANDA</span>
+              </div>
+              <div className="ticket-number">{nomorUndian}</div>
+            </div>
+
+            <button onClick={handleDownloadTicket} className="btn-download-ticket">
+              <Download size={20} />
+              Simpan Tiket ke HP
+            </button>
+
+            <p className="screenshot-hint">Simpan nomor ini. Jika tertutup, Anda bisa scan ulang QR Code untuk melihat tiket ini kembali.</p>
           </div>
-
-          <button onClick={handleDownloadTicket} className="btn-download-ticket">
-            <Download size={20} />
-            Simpan Tiket ke HP
-          </button>
-
-          <p className="screenshot-hint">Simpan nomor ini. Jika tertutup, Anda bisa scan ulang QR Code untuk melihat tiket ini kembali.</p>
-        </div>
         </div>
       </div>
     );
@@ -288,104 +294,117 @@ const FormAbsen = () => {
           <div className="form-header">
             {isFormOpen && (
               <>
-              <h1>Form Kehadiran</h1>
-              <p>Isi data diri Anda untuk mendapatkan nomor undian acara.</p>
-            </>
-          )}
-        </div>
-
-        {!isFormOpen ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '50px 30px',
-            background: 'linear-gradient(145deg, #fffafa, #fff0f0)',
-            borderRadius: '16px',
-            border: '1px solid #fee2e2',
-            boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(239, 68, 68, 0.05)',
-            marginTop: '20px'
-          }}>
-            <h2 style={{
-              color: '#dc2626',
-              marginBottom: '16px',
-              fontSize: '1.75rem',
-              fontWeight: '700',
-              letterSpacing: '-0.5px'
-            }}>
-              Formulir Ditutup
-            </h2>
-            <p style={{
-              color: '#64748b',
-              fontSize: '1.1rem',
-              lineHeight: '1.6',
-              maxWidth: '80%',
-              margin: '0 auto'
-            }}>
-              Pengisian data kehadiran untuk acara ini telah dihentikan oleh pihak penyelenggara. Terima kasih atas partisipasi Anda.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="absen-form">
-            <div className="form-group">
-              <label>Nama Lengkap</label>
-              <input
-                type="text"
-                placeholder="Masukkan nama lengkap"
-                value={formData.namaLengkap}
-                onChange={(e) => setFormData({ ...formData, namaLengkap: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>NIK / ID Karyawan</label>
-              <input
-                type="text"
-                placeholder="Masukkan NIK"
-                value={formData.nik}
-                onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Unit / Divisi</label>
-              <select
-                value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                required
-              >
-                <option value="" disabled>Pilih Unit</option>
-                {units.map(u => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Status Pegawai</label>
-              <select
-                value={formData.statusPegawai}
-                onChange={(e) => setFormData({ ...formData, statusPegawai: e.target.value })}
-                required
-              >
-                <option value="" disabled>Pilih Status</option>
-                {statuses.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-
-            <button type="submit" className="submit-btn" disabled={isLoading}>
-              {isLoading ? 'Memproses Data...' : 'Kirim Absensi & Dapatkan Nomor'}
-            </button>
-            {isLoading && (
-              <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.85rem', marginTop: '12px', lineHeight: '1.4' }}>
-                Mohon tunggu sebentar, data sedang diproses.<br/>
-                <span style={{ color: '#ef4444', fontWeight: '500' }}>Jangan tutup halaman ini.</span> (Bisa memakan waktu hingga 10 detik jika antrean ramai)
-              </p>
+                <h1>Form Kehadiran</h1>
+                <p>Isi data diri Anda untuk mendapatkan nomor undian acara.</p>
+              </>
             )}
-          </form>
-        )}
+          </div>
+
+          {!isFormOpen ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '50px 30px',
+              background: 'linear-gradient(145deg, #fffafa, #fff0f0)',
+              borderRadius: '16px',
+              border: '1px solid #fee2e2',
+              boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(239, 68, 68, 0.05)',
+              marginTop: '20px'
+            }}>
+              <h2 style={{
+                color: '#dc2626',
+                marginBottom: '16px',
+                fontSize: '1.75rem',
+                fontWeight: '700',
+                letterSpacing: '-0.5px'
+              }}>
+                Formulir Ditutup
+              </h2>
+              <p style={{
+                color: '#64748b',
+                fontSize: '1.1rem',
+                lineHeight: '1.6',
+                maxWidth: '80%',
+                margin: '0 auto'
+              }}>
+                Pengisian data kehadiran untuk acara ini telah dihentikan oleh pihak penyelenggara. Terima kasih atas partisipasi Anda.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="absen-form">
+              <div className="form-group">
+                <label>Nama Lengkap</label>
+                <input
+                  type="text"
+                  placeholder="Masukkan nama lengkap"
+                  value={formData.namaLengkap}
+                  onChange={(e) => setFormData({ ...formData, namaLengkap: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>NIK / ID Karyawan</label>
+                <input
+                  type="text"
+                  placeholder="Masukkan NIK"
+                  value={formData.nik}
+                  onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Unit / Divisi</label>
+                <select
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>Pilih Unit</option>
+                  {units.map(u => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+
+              {formData.unit === 'Instansi Lain' && (
+                <div className="form-group">
+                  <label>Instansi <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'normal' }}>(Khusus Instansi Lain)</span></label>
+                  <input
+                    type="text"
+                    placeholder="Ketik nama instansi Anda (misal: AirNav, BMKG)"
+                    value={formData.instansiLain}
+                    onChange={(e) => setFormData({ ...formData, instansiLain: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Status Pegawai</label>
+                <select
+                  value={formData.statusPegawai}
+                  onChange={(e) => setFormData({ ...formData, statusPegawai: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>Pilih Status</option>
+                  {statuses.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button type="submit" className="submit-btn" disabled={isLoading}>
+                {isLoading ? 'Memproses Data...' : 'Kirim Absensi & Dapatkan Nomor'}
+              </button>
+              {isLoading && (
+                <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.85rem', marginTop: '12px', lineHeight: '1.4' }}>
+                  Mohon tunggu sebentar, data sedang diproses.<br />
+                  <span style={{ color: '#ef4444', fontWeight: '500' }}>Jangan tutup halaman ini.</span> (Bisa memakan waktu hingga 10 detik jika antrean ramai)
+                </p>
+              )}
+            </form>
+          )}
         </div>
       </div>
     </div>
